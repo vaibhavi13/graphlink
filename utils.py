@@ -4,8 +4,10 @@ import random
 
 def load_graph():
     graphfile = 'facebook_combined.txt'
+    #graphfile = 'cora.txt'
+    print("data file used is "+ graphfile)
     # labelfile = 'facebook_combined.nodes.labels'
-    G = nx.read_edgelist('facebook_combined.txt', nodetype=None)
+    G = nx.read_edgelist(graphfile, nodetype=None)
     G = G.to_directed()
     print("Number of nodes: ", G.number_of_nodes())
     print("Number of edges: ", G.number_of_edges())
@@ -24,7 +26,8 @@ def get_embedding(G, walks, embed_size=128, window_size=5, workers=3, iter=5, **
     print("Learning embedding vectors...")
     model = Word2Vec(**kwargs)
     print("Learning embedding vectors done!")
-
+    print("model is \n")
+    print(model)
     embeddings = {}
     for word in G.nodes():
         embeddings[word] = model.wv[word]

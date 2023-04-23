@@ -1,10 +1,11 @@
 import networkx as nx
 from gensim.models import Word2Vec
 import random
+import numpy as np
 
-def load_graph():
-    graphfile = 'facebook_combined.txt'
-    #graphfile = 'cora.txt'
+
+
+def load_graph(graphfile = 'cora.txt'):
     print("data file used is "+ graphfile)
     # labelfile = 'facebook_combined.nodes.labels'
     G = nx.read_edgelist(graphfile, nodetype=None)
@@ -17,7 +18,7 @@ def get_embedding(G, walks, embed_size=128, window_size=5, workers=3, iter=5, **
     kwargs["sentences"] = walks
     kwargs["min_count"] = kwargs.get("min_count", 0)
     kwargs["vector_size"] = embed_size
-    kwargs["sg"] = 1  # skip gram
+    kwargs["sg"] = 0  # skip gram
     kwargs["hs"] = 1  # deepwalk use Hierarchical Softmax
     kwargs["workers"] = workers
     kwargs["window"] = window_size
@@ -25,13 +26,15 @@ def get_embedding(G, walks, embed_size=128, window_size=5, workers=3, iter=5, **
 
     print("Learning embedding vectors...")
     model = Word2Vec(**kwargs)
+
     print("Learning embedding vectors done!")
-    print("model is \n")
-    print(model)
-    embeddings = {}
-    for word in G.nodes():
-        embeddings[word] = model.wv[word]
+    embeddings = np.zeros((G.number_of_nodes(), embed_size))
+    for i, node in enumerate(G.nodes()):
+        embeddings[i] = model.wv[node]
     return embeddings
+
+
+
 
 
 def deepwalk_walks(G, num_walks, walk_length,):

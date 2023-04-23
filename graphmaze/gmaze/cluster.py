@@ -3,8 +3,6 @@ from numba import cuda
 import numpy as np
 from pkg_resources import resource_filename
 
-
-
 # CUDA kernel to assign each point to the nearest centroid using Python
 @cuda.jit
 def kmeans_kernel(points, centroids, cluster_assignments):
@@ -22,18 +20,9 @@ def kmeans_kernel(points, centroids, cluster_assignments):
                 min_idx = i
         cluster_assignments[idx] = min_idx
 
+class Kmeans:
 
-def kmeans(points, k, max_iters):
-
-    # Initialize centroids randomly
-    centroids = cp.random.rand(k, points.shape[1]).astype(np.float32)
-    points_gpu = cp.asarray(points).astype(np.float32)
-    
-    for iter in range(max_iters):
-        # Assign points to nearest centroid using CUDA kernel
-        cluster_assignments = cp.zeros(points.shape[0], dtype=np.int32)
-        threads_per_block = 256
-        blocks_per_grid = (points.shape[0] + threads_per_block - 1) // threads_per_block
+    def __init__(self):
 
         #Code to call cuda kernel written in C++
         kernel_file_path = resource_filename("gmaze", "kernel.cu")
@@ -41,39 +30,52 @@ def kmeans(points, k, max_iters):
             source = file.read()
             module = cp.RawModule(code=source,backend='nvcc') #
 
-        kernel = module.get_function('kmeans_kernel')
+        self.kernel = module.get_function('kmeans_kernel')
+
+    def kmeans_cuda(self, points, k, max_iters):
+
+        # Initialize centroids randomly
+        centroids = cp.random.rand(k, points.shape[1]).astype(np.float32)
+        points_gpu = cp.asarray(points).astype(np.float32)
         
-        
-        kernel((blocks_per_grid,), (threads_per_block,), (points_gpu, centroids, cluster_assignments,k,points.shape[1],points.shape[0]))
+        for iter in range(max_iters):
+            # Assign points to nearest centroid using CUDA kernel
+            cluster_assignments = cp.zeros(points.shape[0], dtype=np.int32)
+            threads_per_block = 1024
+            blocks_per_grid = (points.shape[0] + threads_per_block - 1) // threads_per_block
+            
+            
+            self.kernel((blocks_per_grid,), (threads_per_block,), (points_gpu, centroids, cluster_assignments,k,points.shape[1],points.shape[0]))
 
-        # Compute new centroids
-        for i in range(k):
-            mask = (cluster_assignments == i)
-            if cp.any(mask):
-                centroids[i] = cp.mean(points_gpu[mask], axis=0)
-        
-    return cluster_assignments
+            # Compute new centroids
+            for i in range(k):
+                mask = (cluster_assignments == i)
+                if cp.any(mask):
+                    centroids[i] = cp.mean(points_gpu[mask], axis=0)
+            
+        return cluster_assignments
 
-def kmeans_python(points, k, max_iters):
 
-    # Initialize centroids randomly
-    centroids = cp.random.rand(k, points.shape[1]).astype(np.float32)
-    points_gpu = cp.asarray(points).astype(np.float32)
+    def kmeans_python(self, points, k, max_iters):
 
-    for iter in range(max_iters):
-        # Assign points to nearest centroid using CUDA kernel
-        cluster_assignments = cp.zeros(points.shape[0], dtype=np.int32)
-        threads_per_block = 256
-        blocks_per_grid = (points.shape[0] + threads_per_block - 1) // threads_per_block
-        kmeans_kernel[blocks_per_grid, threads_per_block](points_gpu, centroids, cluster_assignments)
+        # Initialize centroids randomly
+        centroids = cp.random.rand(k, points.shape[1]).astype(np.float32)
+        points_gpu = cp.asarray(points).astype(np.float32)
 
-        # Compute new centroids
-        for i in range(k):
-            mask = (cluster_assignments == i)
-            if cp.any(mask):
-                centroids[i] = cp.mean(points_gpu[mask], axis=0)
+        for iter in range(max_iters):
+            # Assign points to nearest centroid using CUDA kernel
+            cluster_assignments = cp.zeros(points.shape[0], dtype=np.int32)
+            threads_per_block = 1024
+            blocks_per_grid = (points.shape[0] + threads_per_block - 1) // threads_per_block
+            kmeans_kernel[blocks_per_grid, threads_per_block](points_gpu, centroids, cluster_assignments)
 
-    return cluster_assignments
+            # Compute new centroids
+            for i in range(k):
+                mask = (cluster_assignments == i)
+                if cp.any(mask):
+                    centroids[i] = cp.mean(points_gpu[mask], axis=0)
+
+        return cluster_assignments
 
 
 

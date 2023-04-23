@@ -2,6 +2,7 @@ README.md
 setup.py
 gmaze/__init__.py
 gmaze/cluster.py
+gmaze/embed.py
 gmaze/kernel.cu
 gmaze.egg-info/PKG-INFO
 gmaze.egg-info/SOURCES.txt

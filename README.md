@@ -16,3 +16,6 @@ Steps to run on env
 
 Run main file
 python main.py
+
+Run visualization.ipynb file
+jupyter nbconvert --to notebook --execute visualization.ipynb --output visualization.ipynb
